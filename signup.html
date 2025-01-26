@@ -1,0 +1,15 @@
+<section id="signup" class="signup">
+    <div class="container">
+        <h2>Create an Account</h2>
+        <form action="/signup" method="POST">
+            <input type="text" name="name" placeholder="Full Name" required>
+            <input type="email" name="email" placeholder="Email Address" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <select name="role" required>
+                <option value="freelancer">Freelancer</option>
+                <option value="buyer">Buyer</option>
+            </select>
+            <button type="submit" class="btn-primary">Sign Up</button>
+        </form>
+    </div>
+</section>
