@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Center - KINGANGITECH</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        body {
+            padding: 2rem;
+            background-color: #f4f6f8;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #0e1632;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+        button {
+            background-color: #ffc107;
+            color: #0e1632;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+            transition: background-color 0.3s ease;
+            margin-right: 1rem;
+        }
+        button:hover {
+            background-color: #e0a800;
+        }
+        .portfolio-list {
+            margin-top: 2rem;
+        }
+        .portfolio-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+        .portfolio-item img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-right: 1rem;
+        }
+        .portfolio-item div {
+            flex-grow: 1;
+        }
+        .portfolio-item button {
+            margin: 0 0.25rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        #drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            color: #666;
+            margin-bottom: 1rem;
+            cursor: pointer;
+        }
+        #drop-area.highlight {
+            border-color: #ffc107;
+            background-color: #fff8e1;
+        }
+        #fileElem {
+            display: none;
+        }
+        #edit-section {
+            margin-top: 2rem;
+            background: #fff;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+        #edit-section h2 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <nav style="background-color:#0e1632; padding: 1rem;">
+        <a href="index.html" style="color:#ffc107; font-weight:bold; font-size:1.2rem; text-decoration:none;">Home</a>
+    </nav>
+    <h1>Admin Center - Manage Portfolio</h1>
+    <form id="portfolio-form">
+        <div id="drop-area">
+            <p>Drag & drop an image here, or <label for="fileElem" style="color:#ffc107; cursor:pointer;">browse</label></p>
+            <input type="file" id="fileElem" accept="image/*" />
+        </div>
+        <div class="form-group">
+            <label for="title">Project Title:</label>
+            <input type="text" id="title" name="title" required />
+        </div>
+        <button type="submit">Add Portfolio Item</button>
+        <button type="button" id="refresh-btn">Refresh List</button>
+    </form>
+
+    <div class="portfolio-list" id="portfolio-list">
+        <!-- Portfolio items will be listed here -->
+    </div>
+
+    <div id="edit-section" style="display:none;">
+        <h2>Edit Portfolio Item</h2>
+        <form id="edit-form">
+            <div id="edit-drop-area" style="border: 2px dashed #ccc; border-radius: 10px; padding: 1rem; text-align: center; color: #666; margin-bottom: 1rem; cursor: pointer;">
+                <p>Drag & drop a new image here, or <label for="edit-fileElem" style="color:#ffc107; cursor:pointer;">browse</label></p>
+                <input type="file" id="edit-fileElem" accept="image/*" />
+            </div>
+            <div class="form-group">
+                <label for="edit-title">Project Title:</label>
+                <input type="text" id="edit-title" name="edit-title" required />
+            </div>
+            <button type="submit">Save Changes</button>
+            <button type="button" id="cancel-edit-btn">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        const apiBase = 'http://localhost:3000/api/portfolio';
+        const uploadUrl = 'http://localhost:3000/api/upload';
+        let uploadedImageFilename = '';
+        let editUploadedImageFilename = '';
+        let editingItemId = null;
+
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('fileElem');
+
+        const editDropArea = document.getElementById('edit-drop-area');
+        const editFileInput = document.getElementById('edit-fileElem');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+            editDropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('highlight'), false);
+            editDropArea.addEventListener(eventName, () => editDropArea.classList.add('highlight'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.remove('highlight'), false);
+            editDropArea.addEventListener(eventName, () => editDropArea.classList.remove('highlight'), false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Handle dropped files
+        dropArea.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files, false);
+        });
+
+        editDropArea.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files, true);
+        });
+
+        // Handle file input change
+        fileInput.addEventListener('change', () => {
+            handleFiles(fileInput.files, false);
+        });
+
+        editFileInput.addEventListener('change', () => {
+            handleFiles(editFileInput.files, true);
+        });
+
+        function handleFiles(files, isEdit) {
+            if (files.length === 0) return;
+            const file = files[0];
+            uploadFile(file, isEdit);
+        }
+
+        async function uploadFile(file, isEdit) {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const res = await fetch(uploadUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.filename) {
+                    if (isEdit) {
+                        editUploadedImageFilename = data.filename;
+                        alert('Image uploaded successfully for edit: ' + editUploadedImageFilename);
+                    } else {
+                        uploadedImageFilename = data.filename;
+                        alert('Image uploaded successfully: ' + uploadedImageFilename);
+                    }
+                } else {
+                    alert('Image upload failed');
+                }
+            } catch (err) {
+                alert('Error uploading image: ' + err.message);
+            }
+        }
+
+        async function fetchPortfolio() {
+            const res = await fetch(apiBase);
+            return await res.json();
+        }
+
+        async function renderPortfolio() {
+            const list = document.getElementById('portfolio-list');
+            list.innerHTML = '';
+            const items = await fetchPortfolio();
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'portfolio-item';
+
+                const img = document.createElement('img');
+                img.src = item.image;
+                img.alt = item.title;
+
+                const info = document.createElement('div');
+                info.textContent = item.title;
+
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edit';
+                editBtn.onclick = () => openEditForm(item);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.onclick = async () => {
+                    if (confirm('Are you sure you want to delete this item?')) {
+                        await fetch(`${apiBase}/${item.id}`, { method: 'DELETE' });
+                        renderPortfolio();
+                    }
+                };
+
+                div.appendChild(img);
+                div.appendChild(info);
+                div.appendChild(editBtn);
+                div.appendChild(deleteBtn);
+                list.appendChild(div);
+            });
+        }
+
+        function openEditForm(item) {
+            editingItemId = item.id;
+            document.getElementById('edit-title').value = item.title;
+            editUploadedImageFilename = item.image;
+            document.getElementById('edit-section').style.display = 'block';
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        document.getElementById('edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('edit-title').value.trim();
+            if (!title) {
+                alert('Please enter a project title.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('title', title);
+            if (editUploadedImageFilename && editUploadedImageFilename !== '') {
+                // If a new image was uploaded, send it as file, else send title only
+                if (editFileInput.files.length > 0) {
+                    formData.append('image', editFileInput.files[0]);
+                }
+            }
+            try {
+                let response;
+                if (editFileInput.files.length > 0) {
+                    // If new image uploaded, send multipart/form-data
+                    response = await fetch(`${apiBase}/${editingItemId}`, {
+                        method: 'PUT',
+                        body: formData
+                    });
+                } else {
+                    // Send JSON with title only
+                    response = await fetch(`${apiBase}/${editingItemId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title })
+                    });
+                }
+                if (response.ok) {
+                    alert('Portfolio item updated successfully.');
+                    document.getElementById('edit-section').style.display = 'none';
+                    renderPortfolio();
+                } else {
+                    alert('Failed to update portfolio item.');
+                }
+            } catch (err) {
+                alert('Error updating portfolio item: ' + err.message);
+            }
+        });
+
+        document.getElementById('cancel-edit-btn').addEventListener('click', () => {
+            document.getElementById('edit-section').style.display = 'none';
+            editingItemId = null;
+            editUploadedImageFilename = '';
+            document.getElementById('edit-form').reset();
+        });
+
+        document.getElementById('portfolio-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = e.target.title.value.trim();
+            if (!title) {
+                alert('Please enter a project title.');
+                return;
+            }
+            if (!uploadedImageFilename) {
+                alert('Please upload an image first.');
+                return;
+            }
+            await fetch(apiBase, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: uploadedImageFilename, title })
+            });
+            e.target.reset();
+            uploadedImageFilename = '';
+            renderPortfolio();
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', renderPortfolio);
+
+        // Initial render
+        renderPortfolio();
+    </script>
+
+    <hr style="margin: 3rem 0; border-color: #ccc;" />
+
+    <h1>Manage Blogs</h1>
+    <form id="blog-form">
+        <div class="form-group">
+            <label for="blog-title">Blog Title:</label>
+            <input type="text" id="blog-title" name="blog-title" required />
+        </div>
+        <div class="form-group">
+            <label for="blog-content">Content:</label>
+            <textarea id="blog-content" name="blog-content" rows="6" required style="width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid #ccc; font-size: 1rem;"></textarea>
+        </div>
+        <div id="blog-drop-area" style="border: 2px dashed #ccc; border-radius: 10px; padding: 1rem; text-align: center; color: #666; margin-bottom: 1rem; cursor: pointer;">
+            <p>Drag & drop an image here, or <label for="blog-fileElem" style="color:#ffc107; cursor:pointer;">browse</label></p>
+            <input type="file" id="blog-fileElem" accept="image/*" />
+        </div>
+        <button type="submit">Add Blog Post</button>
+        <button type="button" id="blog-refresh-btn">Refresh List</button>
+    </form>
+
+    <div class="portfolio-list" id="blog-list" style="margin-top: 2rem;">
+        <!-- Blog posts will be listed here -->
+    </div>
+
+    <div id="blog-edit-section" style="display:none; margin-top: 2rem; background: #fff; padding: 1rem; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.05);">
+        <h2>Edit Blog Post</h2>
+        <form id="blog-edit-form">
+            <div id="blog-edit-drop-area" style="border: 2px dashed #ccc; border-radius: 10px; padding: 1rem; text-align: center; color: #666; margin-bottom: 1rem; cursor: pointer;">
+                <p>Drag & drop a new image here, or <label for="blog-edit-fileElem" style="color:#ffc107; cursor:pointer;">browse</label></p>
+                <input type="file" id="blog-edit-fileElem" accept="image/*" />
+            </div>
+            <div class="form-group">
+                <label for="blog-edit-title">Blog Title:</label>
+                <input type="text" id="blog-edit-title" name="blog-edit-title" required />
+            </div>
+            <div class="form-group">
+                <label for="blog-edit-content">Content:</label>
+                <textarea id="blog-edit-content" name="blog-edit-content" rows="6" required style="width: 100%; padding: 0.5rem; border-radius: 5px; border: 1px solid #ccc; font-size: 1rem;"></textarea>
+            </div>
+            <button type="submit">Save Changes</button>
+            <button type="button" id="blog-cancel-edit-btn">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        const blogApiBase = 'index.php?api=blog';
+        const blogUploadUrl = 'http://localhost:3000/api/upload'; // Assuming same upload endpoint
+
+        let blogUploadedImageFilename = '';
+        let blogEditUploadedImageFilename = '';
+        let editingBlogId = null;
+
+        const blogDropArea = document.getElementById('blog-drop-area');
+        const blogFileInput = document.getElementById('blog-fileElem');
+
+        const blogEditDropArea = document.getElementById('blog-edit-drop-area');
+        const blogEditFileInput = document.getElementById('blog-edit-fileElem');
+
+        // Prevent default drag behaviors for blog
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            blogDropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+            blogEditDropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            blogDropArea.addEventListener(eventName, () => blogDropArea.classList.add('highlight'), false);
+            blogEditDropArea.addEventListener(eventName, () => blogEditDropArea.classList.add('highlight'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            blogDropArea.addEventListener(eventName, () => blogDropArea.classList.remove('highlight'), false);
+            blogEditDropArea.addEventListener(eventName, () => blogEditDropArea.classList.remove('highlight'), false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Handle dropped files for blog
+        blogDropArea.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleBlogFiles(files, false);
+        });
+
+        blogEditDropArea.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleBlogFiles(files, true);
+        });
+
+        // Handle file input change for blog
+        blogFileInput.addEventListener('change', () => {
+            handleBlogFiles(blogFileInput.files, false);
+        });
+
+        blogEditFileInput.addEventListener('change', () => {
+            handleBlogFiles(blogEditFileInput.files, true);
+        });
+
+        function handleBlogFiles(files, isEdit) {
+            if (files.length === 0) return;
+            const file = files[0];
+            uploadBlogFile(file, isEdit);
+        }
+
+        async function uploadBlogFile(file, isEdit) {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const res = await fetch(blogUploadUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.filename) {
+                    if (isEdit) {
+                        blogEditUploadedImageFilename = data.filename;
+                        alert('Image uploaded successfully for blog edit: ' + blogEditUploadedImageFilename);
+                    } else {
+                        blogUploadedImageFilename = data.filename;
+                        alert('Image uploaded successfully for blog: ' + blogUploadedImageFilename);
+                    }
+                } else {
+                    alert('Image upload failed');
+                }
+            } catch (err) {
+                alert('Error uploading blog image: ' + err.message);
+            }
+        }
+
+        async function fetchBlogs() {
+            const res = await fetch(blogApiBase);
+            return await res.json();
+        }
+
+        async function renderBlogs() {
+            const list = document.getElementById('blog-list');
+            list.innerHTML = '';
+            const items = await fetchBlogs();
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'portfolio-item';
+
+                const img = document.createElement('img');
+                img.src = item.image;
+                img.alt = item.title;
+
+                const info = document.createElement('div');
+                info.innerHTML = '<strong>' + item.title + '</strong><br><em>' + item.content.substring(0, 100) + (item.content.length > 100 ? '...' : '') + '</em>';
+
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edit';
+                editBtn.onclick = () => openBlogEditForm(item);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.onclick = async () => {
+                    if (confirm('Are you sure you want to delete this blog post?')) {
+                        await fetch(`${blogApiBase}&id=${item.id}`, { method: 'DELETE' });
+                        renderBlogs();
+                    }
+                };
+
+                div.appendChild(img);
+                div.appendChild(info);
+                div.appendChild(editBtn);
+                div.appendChild(deleteBtn);
+                list.appendChild(div);
+            });
+        }
+
+        function openBlogEditForm(item) {
+            editingBlogId = item.id;
+            document.getElementById('blog-edit-title').value = item.title;
+            document.getElementById('blog-edit-content').value = item.content;
+            blogEditUploadedImageFilename = item.image;
+            document.getElementById('blog-edit-section').style.display = 'block';
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        document.getElementById('blog-edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('blog-edit-title').value.trim();
+            const content = document.getElementById('blog-edit-content').value.trim();
+            if (!title || !content) {
+                alert('Please enter both title and content.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('content', content);
+            if (blogEditUploadedImageFilename && blogEditUploadedImageFilename !== '') {
+                if (blogEditFileInput.files.length > 0) {
+                    formData.append('image', blogEditFileInput.files[0]);
+                } else {
+                    formData.append('image', blogEditUploadedImageFilename);
+                }
+            }
+            try {
+                let response;
+                if (blogEditFileInput.files.length > 0) {
+                    response = await fetch(`${blogApiBase}&id=${editingBlogId}`, {
+                        method: 'PUT',
+                        body: formData
+                    });
+                } else {
+                    response = await fetch(`${blogApiBase}&id=${editingBlogId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title, content, image: blogEditUploadedImageFilename })
+                    });
+                }
+                if (response.ok) {
+                    alert('Blog post updated successfully.');
+                    document.getElementById('blog-edit-section').style.display = 'none';
+                    renderBlogs();
+                } else {
+                    alert('Failed to update blog post.');
+                }
+            } catch (err) {
+                alert('Error updating blog post: ' + err.message);
+            }
+        });
+
+        document.getElementById('blog-cancel-edit-btn').addEventListener('click', () => {
+            document.getElementById('blog-edit-section').style.display = 'none';
+            editingBlogId = null;
+            blogEditUploadedImageFilename = '';
+            document.getElementById('blog-edit-form').reset();
+        });
+
+        document.getElementById('blog-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = e.target['blog-title'].value.trim();
+            const content = e.target['blog-content'].value.trim();
+            if (!title || !content) {
+                alert('Please enter both title and content.');
+                return;
+            }
+            if (!blogUploadedImageFilename) {
+                alert('Please upload an image first.');
+                return;
+            }
+            await fetch(blogApiBase, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content, image: blogUploadedImageFilename })
+            });
+            e.target.reset();
+            blogUploadedImageFilename = '';
+            renderBlogs();
+        });
+
+        document.getElementById('blog-refresh-btn').addEventListener('click', renderBlogs);
+
+        // Initial render
+        renderBlogs();
+    </script>
+</body>
+</html>
