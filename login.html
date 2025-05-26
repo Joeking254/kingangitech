@@ -1,10 +1,51 @@
-<section id="login" class="login">
-    <div class="container">
-        <h2>Login to Your Account</h2>
-        <form action="/login" method="POST">
-            <input type="email" name="email" placeholder="Email Address" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit" class="btn-primary">Login</button>
-        </form>
-    </div>
-</section>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login - KINGANGITECH</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="hero">
+        <div class="container">
+            <nav class="navbar">
+                <img src="logo.png" alt="KINGANGITECH Logo" class="logo" />
+                <ul class="menu">
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="portfolio.html">Portfolio</a></li>
+                    <li><a href="signup.html">Sign Up</a></li>
+                    <li><a href="login.html" class="active">Login</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Login Section -->
+    <section id="login" class="login">
+        <div class="container">
+            <h2>Login to Your Account</h2>
+            <form action="index.php" method="POST" class="auth-form">
+                <input type="email" name="email" placeholder="Email Address" required />
+                <input type="password" name="password" placeholder="Password" required />
+                <div class="checkbox-group">
+                    <input type="checkbox" id="remember" name="remember" />
+                    <label for="remember">Remember Me</label>
+                </div>
+                <input type="hidden" name="login" value="1" />
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Footer Section -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 KINGANGITECH. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,15 +1,53 @@
-<section id="signup" class="signup">
-    <div class="container">
-        <h2>Create an Account</h2>
-        <form action="/signup" method="POST">
-            <input type="text" name="name" placeholder="Full Name" required>
-            <input type="email" name="email" placeholder="Email Address" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <select name="role" required>
-                <option value="freelancer">Freelancer</option>
-                <option value="buyer">Buyer</option>
-            </select>
-            <button type="submit" class="btn-primary">Sign Up</button>
-        </form>
-    </div>
-</section>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign Up - KINGANGITECH</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="hero">
+        <div class="container">
+            <nav class="navbar">
+                <img src="logo.png" alt="KINGANGITECH Logo" class="logo" />
+                <ul class="menu">
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="portfolio.html">Portfolio</a></li>
+                    <li><a href="signup.html" class="active">Sign Up</a></li>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Signup Section -->
+    <section id="signup" class="signup">
+        <div class="container">
+            <h2>Create an Account</h2>
+            <form action="index.php" method="POST" class="auth-form">
+                <input type="text" name="username" placeholder="Full Name" required />
+                <input type="email" name="email" placeholder="Email Address" required />
+                <input type="password" name="password" placeholder="Password" required />
+                <select name="role" required>
+                    <option value="" disabled selected>Select Role</option>
+                    <option value="freelancer">Freelancer</option>
+                    <option value="buyer">Buyer</option>
+                </select>
+                <input type="hidden" name="signup" value="1" />
+                <button type="submit" class="btn-primary">Sign Up</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Footer Section -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 KINGANGITECH. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
