@@ -1,0 +1,40 @@
+name: Deploy to Heroku
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Login to Heroku Container Registry
+        env:
+          HEROKU_API_KEY: \${{ secrets.HEROKU_API_KEY }}
+        run: |
+          echo \$HEROKU_API_KEY | docker login --username=_ --password-stdin registry.heroku.com
+
+      - name: Build Docker image
+        run: docker build -t registry.heroku.com/\${{ secrets.HEROKU_APP_NAME }}/web .
+
+      - name: Push Docker image to Heroku Container Registry
+        run: docker push registry.heroku.com/\${{ secrets.HEROKU_APP_NAME }}/web
+
+      - name: Release app on Heroku
+        run: heroku container:release web --app \${{ secrets.HEROKU_APP_NAME }}
+
+      - name: Verify deployment
+        run: heroku ps --app \${{ secrets.HEROKU_APP_NAME }}

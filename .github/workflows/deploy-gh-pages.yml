@@ -1,34 +1,4 @@
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build project
-        run: |
-          # If you have a build step, add it here
-          # For static sites, this can be omitted or replaced with a copy step
-          echo "No build step defined"
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: \${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
-          publish_branch: gh-pages
+# Disabled GitHub Pages deployment workflow - renamed to prevent running
+# Original file renamed to deploy-gh-pages.yml.disabled
+# To re-enable, rename back to deploy-gh-pages.yml
+# This workflow is disabled because full app deployment requires a different approach
